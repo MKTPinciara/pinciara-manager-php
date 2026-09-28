@@ -1,0 +1,40 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pinciara_ci4_app
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html
+    ports:
+      - "8085:8080"
+    environment:
+      CI_ENVIRONMENT: development
+      app.baseURL: "http://localhost:8085/"
+      database.default.hostname: db
+      database.default.database: pinciara_ci4
+      database.default.username: pinciara
+      database.default.password: secretpassword
+      database.default.DBDriver: MySQLi
+      database.default.port: 3306
+    depends_on:
+      - db
+
+  db:
+    image: mysql:8.0
+    container_name: pinciara_ci4_db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: pinciara_ci4
+      MYSQL_USER: pinciara
+      MYSQL_PASSWORD: secretpassword
+      MYSQL_ROOT_PASSWORD: rootpassword
+    ports:
+      - "3308:3306"
+    volumes:
+      - ci4_db_data:/var/lib/mysql
+
+volumes:
+  ci4_db_data:

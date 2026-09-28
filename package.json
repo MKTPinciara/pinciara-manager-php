@@ -1,0 +1,15 @@
+{
+  "name": "pinciara-manager-ci4",
+  "version": "1.0.0",
+  "description": "Pinciara Manager - CodeIgniter 4 + Tailwind CSS",
+  "scripts": {
+    "build:css": "tailwindcss -i ./src/css/input.css -o ./public/css/app.css --minify",
+    "watch:css": "tailwindcss -i ./src/css/input.css -o ./public/css/app.css --watch"
+  },
+  "devDependencies": {
+    "@tailwindcss/forms": "^0.5.10",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17"
+  }
+}
