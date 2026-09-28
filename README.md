@@ -59,7 +59,7 @@ Na pasta `php-CodeIgniter4`, execute:
 docker compose up -d --build
 ```
 Os seguintes contêineres serão inicializados:
-* `pinciara_ci4_app`: Aplicação PHP 8.3 + CodeIgniter 4 na porta **8080**
+* `pinciara_ci4_app`: Aplicação PHP 8.3 + CodeIgniter 4 na porta **8085** (mapeada para 8080 interna)
 * `pinciara_ci4_db`: Banco de dados MySQL 8.0 na porta interna **3306** (porta externa **3308**)
 
 ### 2. Executar as Migrations e os Dados Iniciais (Seeders)
@@ -70,7 +70,7 @@ docker exec -it pinciara_ci4_app php spark db:seed PinciaraSeeder
 ```
 
 ### 3. Acessar o Sistema
-* **URL:** [http://localhost:8080](http://localhost:8080)
+* **URL:** [http://localhost:8085](http://localhost:8085)
 * **Usuário Visitante:** `visitante@pi.com` | **Senha:** `visitante` (ou use o botão de 1 clique na tela de login)
 * **Usuário Admin:** `bernardo.pinciara@gmail.com` | **Senha:** `admin123`
 

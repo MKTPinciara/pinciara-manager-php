@@ -5,7 +5,33 @@
 <div x-data="{ 
     modalNova: false, 
     modalEditar: false, 
-    placaEdit: { id: '', titulo: '', largura: '', altura: '', material: '', tipo: '', quantidade: 1, valor: '', observacao: '', status: '', data_envio: '' } 
+    modalUsar: false,
+    search: '',
+    novaPlaca: {
+        titulo: '',
+        largura: 1.00,
+        altura: 0.70,
+        material: 'Polionda',
+        tipo: 'Vende-se',
+        quantidade: 1,
+        valor: '24.50',
+        observacao: '',
+        status: '<?= esc($activeTab) ?>'
+    },
+    placaEdit: { id: '', titulo: '', largura: '', altura: '', material: '', tipo: '', quantidade: 1, valor: '', observacao: '', status: '', data_envio: '' },
+    placaUsar: { id: '', titulo: '', max: 1, quantidade: 1 },
+    recalcularNova() {
+        let l = parseFloat(this.novaPlaca.largura) || 0;
+        let a = parseFloat(this.novaPlaca.altura) || 0;
+        let q = parseInt(this.novaPlaca.quantidade) || 1;
+        this.novaPlaca.valor = (l * a * 35.00 * q).toFixed(2);
+    },
+    recalcularEdit() {
+        let l = parseFloat(this.placaEdit.largura) || 0;
+        let a = parseFloat(this.placaEdit.altura) || 0;
+        let q = parseInt(this.placaEdit.quantidade) || 1;
+        this.placaEdit.valor = (l * a * 35.00 * q).toFixed(2);
+    }
 }">
 
     <!-- Cabeçalho -->
@@ -14,8 +40,8 @@
             <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Controle de Placas e Impressos</h1>
             <p class="text-sm text-slate-500 mt-1">Gerencie a confecção gráfica, controle de estoque e custos financeiros com fornecedores.</p>
         </div>
-        <div>
-            <button @click="modalNova = true" 
+        <div class="flex items-center gap-3">
+            <button @click="recalcularNova(); modalNova = true" 
                     class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold text-sm shadow-md shadow-brand-600/20 transition-all transform active:scale-95">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                 Nova Placa
@@ -58,16 +84,16 @@
         </div>
     </div>
 
-    <!-- Navegação de Abas -->
-    <div class="border-b border-slate-200 mb-8 overflow-x-auto">
-        <nav class="flex space-x-2 sm:space-x-4 min-w-max pb-px" aria-label="Abas de Placas">
+    <!-- Navegação de Abas e Barra de Filtro Rápido -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 mb-8 pb-3">
+        <nav class="flex space-x-2 sm:space-x-4 min-w-max overflow-x-auto pb-1" aria-label="Abas de Placas">
             <?php foreach ($tabs as $key => $label): ?>
                 <?php 
                     $isActive = ($activeTab === $key);
                     $count = $counts[$key] ?? 0;
                 ?>
                 <a href="<?= base_url('placas?tab=' . urlencode($key)) ?>" 
-                   class="flex items-center gap-2 py-3 px-4 border-b-2 font-semibold text-sm transition-all whitespace-nowrap <?= $isActive ? 'border-brand-600 text-brand-700 bg-brand-50/50 rounded-t-lg' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300' ?>">
+                   class="flex items-center gap-2 py-2.5 px-4 border-b-2 font-semibold text-sm transition-all whitespace-nowrap <?= $isActive ? 'border-brand-600 text-brand-700 bg-brand-50/50 rounded-t-lg' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300' ?>">
                     <span><?= esc($label) ?></span>
                     <span class="px-2 py-0.5 text-xs rounded-full font-bold <?= $isActive ? 'bg-brand-600 text-white' : 'bg-slate-200 text-slate-600' ?>">
                         <?= $count ?>
@@ -75,6 +101,13 @@
                 </a>
             <?php endforeach; ?>
         </nav>
+
+        <!-- Campo de Pesquisa em Tempo Real -->
+        <div class="relative w-full sm:w-72">
+            <input type="text" x-model="search" placeholder="🔍 Filtrar placas nesta aba..." 
+                   class="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-slate-200 bg-white focus:outline-hidden focus:ring-2 focus:ring-brand-500 shadow-xs">
+            <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+        </div>
     </div>
 
     <!-- Lista de Placas -->
@@ -85,27 +118,28 @@
             </div>
             <h3 class="text-base font-bold text-slate-800">Nenhuma placa nesta categoria</h3>
             <p class="text-sm text-slate-500 max-w-sm mx-auto mt-1">Não há nenhum registro com o status "<?= esc($tabs[$activeTab] ?? $activeTab) ?>".</p>
-            <button @click="modalNova = true" class="mt-4 px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold">
+            <button @click="recalcularNova(); modalNova = true" class="mt-4 px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold">
                 + Adicionar Placa
             </button>
         </div>
     <?php else: ?>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <?php foreach ($placas as $placa): ?>
-                <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between">
+                <div x-show="!search || '<?= strtolower(addslashes(esc($placa['titulo'] . ' ' . $placa['tipo'] . ' ' . $placa['material'] . ' ' . ($placa['observacao'] ?? '')))) ?>'.includes(search.toLowerCase())"
+                     class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between">
                     <div>
                         <!-- Topo do Card -->
                         <div class="flex items-start justify-between gap-3 mb-3">
-                            <span class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-slate-100 text-slate-700">
+                            <span class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-slate-100 text-slate-700 border border-slate-200">
                                 <?= esc($placa['tipo']) ?>
                             </span>
-                            <span class="text-sm font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
+                            <span class="text-sm font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-100">
                                 R$ <?= number_format($placa['valor'] ?? 0, 2, ',', '.') ?>
                             </span>
                         </div>
 
                         <!-- Título -->
-                        <h3 class="text-base font-bold text-slate-900 mb-2">
+                        <h3 class="text-base font-bold text-slate-900 mb-2 leading-snug">
                             <?= esc($placa['titulo']) ?>
                         </h3>
 
@@ -121,7 +155,7 @@
                             </div>
                             <div>
                                 <span class="text-slate-400 block">Quantidade:</span>
-                                <strong class="text-slate-800"><?= $placa['quantidade'] ?> un.</strong>
+                                <strong class="text-slate-800 font-bold"><?= $placa['quantidade'] ?> un.</strong>
                             </div>
                             <div>
                                 <span class="text-slate-400 block">Previsão/Envio:</span>
@@ -139,34 +173,42 @@
                     <!-- Rodapé: Avanço de Status & Ações -->
                     <div class="pt-4 border-t border-slate-100 flex items-center justify-between gap-2">
                         
-                        <!-- Avanço Contextual de Status -->
-                        <form action="<?= base_url('placas/status/' . $placa['id']) ?>" method="POST" class="flex-1">
+                        <!-- Avanço Contextual de Status ou Dar Baixa -->
+                        <div class="flex-1">
                             <?php if ($placa['status'] === 'produzir'): ?>
-                                <input type="hidden" name="status" value="pagar">
-                                <button type="submit" class="w-full text-xs font-semibold py-2 px-3 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 transition-colors">
-                                    Enviar para Pagar &rarr;
-                                </button>
+                                <form action="<?= base_url('placas/status/' . $placa['id']) ?>" method="POST">
+                                    <input type="hidden" name="status" value="pagar">
+                                    <button type="submit" class="w-full text-xs font-semibold py-2 px-3 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 transition-colors flex items-center justify-center gap-1.5">
+                                        <span>Enviar p/ Pagar</span> &rarr;
+                                    </button>
+                                </form>
                             <?php elseif ($placa['status'] === 'pagar'): ?>
-                                <input type="hidden" name="status" value="pago">
-                                <button type="submit" class="w-full text-xs font-semibold py-2 px-3 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 transition-colors">
-                                    Confirmar Pago &rarr;
-                                </button>
+                                <form action="<?= base_url('placas/status/' . $placa['id']) ?>" method="POST">
+                                    <input type="hidden" name="status" value="pago">
+                                    <button type="submit" class="w-full text-xs font-semibold py-2 px-3 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 transition-colors flex items-center justify-center gap-1.5">
+                                        <span>Confirmar Pago</span> &rarr;
+                                    </button>
+                                </form>
                             <?php elseif ($placa['status'] === 'pago'): ?>
-                                <input type="hidden" name="status" value="disponíveis">
-                                <button type="submit" class="w-full text-xs font-semibold py-2 px-3 rounded-lg bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 transition-colors">
-                                    Mover p/ Disponíveis &rarr;
-                                </button>
+                                <form action="<?= base_url('placas/status/' . $placa['id']) ?>" method="POST">
+                                    <input type="hidden" name="status" value="disponíveis">
+                                    <button type="submit" class="w-full text-xs font-semibold py-2 px-3 rounded-lg bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 transition-colors flex items-center justify-center gap-1.5">
+                                        <span>Mover p/ Estoque</span> &rarr;
+                                    </button>
+                                </form>
                             <?php elseif ($placa['status'] === 'disponíveis'): ?>
-                                <input type="hidden" name="status" value="usadas">
-                                <button type="submit" class="w-full text-xs font-semibold py-2 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition-colors">
-                                    Marcar como Usada &rarr;
+                                <button type="button" 
+                                        @click="placaUsar = { id: '<?= $placa['id'] ?>', titulo: '<?= addslashes(esc($placa['titulo'])) ?>', max: <?= (int)$placa['quantidade'] ?>, quantidade: 1 }; modalUsar = true" 
+                                        class="w-full text-xs font-semibold py-2 px-3 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition-colors flex items-center justify-center gap-1.5 shadow-xs">
+                                    <svg class="w-3.5 h-3.5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+                                    Dar Baixa / Usar
                                 </button>
                             <?php else: ?>
-                                <span class="text-xs text-slate-400 font-medium italic block text-center py-1.5">Concluída</span>
+                                <span class="text-xs text-slate-400 font-medium italic block text-center py-1.5 bg-slate-50 rounded-lg">Instalada em imóvel</span>
                             <?php endif; ?>
-                        </form>
+                        </div>
 
-                        <!-- Botões de Ação -->
+                        <!-- Botões de Edição e Exclusão -->
                         <div class="flex items-center gap-1">
                             <button type="button" 
                                     @click="placaEdit = {
@@ -215,19 +257,19 @@
                         <div class="space-y-4 text-sm">
                             <div>
                                 <label class="block font-semibold text-slate-700 mb-1">Título / Identificação *</label>
-                                <input type="text" name="titulo" required placeholder="Ex: Placa Vende-se - Icaraí" 
+                                <input type="text" name="titulo" x-model="novaPlaca.titulo" required placeholder="Ex: Placa Vende-se - Icaraí" 
                                        class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-brand-500 focus:outline-hidden">
                             </div>
 
                             <div class="grid grid-cols-2 gap-3">
                                 <div>
                                     <label class="block font-semibold text-slate-700 mb-1">Largura (m)</label>
-                                    <input type="number" step="0.01" name="largura" value="1.00" 
+                                    <input type="number" step="0.01" name="largura" x-model="novaPlaca.largura" @input="recalcularNova()"
                                            class="w-full px-3 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-brand-500 focus:outline-hidden">
                                 </div>
                                 <div>
                                     <label class="block font-semibold text-slate-700 mb-1">Altura (m)</label>
-                                    <input type="number" step="0.01" name="altura" value="0.70" 
+                                    <input type="number" step="0.01" name="altura" x-model="novaPlaca.altura" @input="recalcularNova()"
                                            class="w-full px-3 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-brand-500 focus:outline-hidden">
                                 </div>
                             </div>
@@ -235,7 +277,7 @@
                             <div class="grid grid-cols-2 gap-3">
                                 <div>
                                     <label class="block font-semibold text-slate-700 mb-1">Material</label>
-                                    <select name="material" class="w-full px-3 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-brand-500 focus:outline-hidden">
+                                    <select name="material" x-model="novaPlaca.material" class="w-full px-3 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-brand-500 focus:outline-hidden">
                                         <option value="Polionda">Polionda</option>
                                         <option value="Lona com Reforço">Lona com Reforço</option>
                                         <option value="PVC 2mm">PVC 2mm</option>
@@ -244,7 +286,7 @@
                                 </div>
                                 <div>
                                     <label class="block font-semibold text-slate-700 mb-1">Tipo</label>
-                                    <select name="tipo" class="w-full px-3 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-brand-500 focus:outline-hidden">
+                                    <select name="tipo" x-model="novaPlaca.tipo" class="w-full px-3 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-brand-500 focus:outline-hidden">
                                         <option value="Vende-se">Vende-se</option>
                                         <option value="Aluga-se">Aluga-se</option>
                                         <option value="Exclusividade">Exclusividade</option>
@@ -256,13 +298,16 @@
                             <div class="grid grid-cols-3 gap-3">
                                 <div>
                                     <label class="block font-semibold text-slate-700 mb-1">Quantidade</label>
-                                    <input type="number" name="quantidade" value="1" min="1" 
+                                    <input type="number" name="quantidade" x-model="novaPlaca.quantidade" @input="recalcularNova()" min="1" 
                                            class="w-full px-3 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-brand-500 focus:outline-hidden">
                                 </div>
                                 <div>
-                                    <label class="block font-semibold text-slate-700 mb-1">Valor Total (R$)</label>
-                                    <input type="number" step="0.01" name="valor" value="0.00" 
-                                           class="w-full px-3 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-brand-500 focus:outline-hidden">
+                                    <label class="block font-semibold text-slate-700 mb-1 flex items-center justify-between">
+                                        <span>Valor (R$)</span>
+                                        <button type="button" @click="recalcularNova()" class="text-[10px] text-brand-600 hover:underline">Calcular</button>
+                                    </label>
+                                    <input type="number" step="0.01" name="valor" x-model="novaPlaca.valor" 
+                                           class="w-full px-3 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-brand-500 focus:outline-hidden font-semibold text-emerald-700 bg-emerald-50/30">
                                 </div>
                                 <div>
                                     <label class="block font-semibold text-slate-700 mb-1">Data Envio</label>
@@ -282,7 +327,7 @@
 
                             <div>
                                 <label class="block font-semibold text-slate-700 mb-1">Observações</label>
-                                <textarea name="observacao" rows="2" placeholder="Informações de acabamento, telefone para impressão, etc." 
+                                <textarea name="observacao" x-model="novaPlaca.observacao" rows="2" placeholder="Informações de acabamento, telefone para impressão, etc." 
                                           class="w-full px-3.5 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-brand-500 focus:outline-hidden"></textarea>
                             </div>
                         </div>
@@ -324,12 +369,12 @@
                             <div class="grid grid-cols-2 gap-3">
                                 <div>
                                     <label class="block font-semibold text-slate-700 mb-1">Largura (m)</label>
-                                    <input type="number" step="0.01" name="largura" x-model="placaEdit.largura" 
+                                    <input type="number" step="0.01" name="largura" x-model="placaEdit.largura" @input="recalcularEdit()"
                                            class="w-full px-3 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-brand-500 focus:outline-hidden">
                                 </div>
                                 <div>
                                     <label class="block font-semibold text-slate-700 mb-1">Altura (m)</label>
-                                    <input type="number" step="0.01" name="altura" x-model="placaEdit.altura" 
+                                    <input type="number" step="0.01" name="altura" x-model="placaEdit.altura" @input="recalcularEdit()"
                                            class="w-full px-3 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-brand-500 focus:outline-hidden">
                                 </div>
                             </div>
@@ -358,13 +403,16 @@
                             <div class="grid grid-cols-3 gap-3">
                                 <div>
                                     <label class="block font-semibold text-slate-700 mb-1">Quantidade</label>
-                                    <input type="number" name="quantidade" x-model="placaEdit.quantidade" min="1" 
+                                    <input type="number" name="quantidade" x-model="placaEdit.quantidade" @input="recalcularEdit()" min="1" 
                                            class="w-full px-3 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-brand-500 focus:outline-hidden">
                                 </div>
                                 <div>
-                                    <label class="block font-semibold text-slate-700 mb-1">Valor Total (R$)</label>
+                                    <label class="block font-semibold text-slate-700 mb-1 flex items-center justify-between">
+                                        <span>Valor (R$)</span>
+                                        <button type="button" @click="recalcularEdit()" class="text-[10px] text-brand-600 hover:underline">Calcular</button>
+                                    </label>
                                     <input type="number" step="0.01" name="valor" x-model="placaEdit.valor" 
-                                           class="w-full px-3 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-brand-500 focus:outline-hidden">
+                                           class="w-full px-3 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-brand-500 focus:outline-hidden font-semibold text-emerald-700 bg-emerald-50/30">
                                 </div>
                                 <div>
                                     <label class="block font-semibold text-slate-700 mb-1">Data Envio</label>
@@ -396,6 +444,54 @@
                         </button>
                         <button type="submit" class="px-5 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs shadow-xs">
                             Atualizar Placa
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Usar Placa (Baixa de Estoque) -->
+    <div x-show="modalUsar" x-cloak class="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
+        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:p-0">
+            <div x-show="modalUsar" x-transition.opacity class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs"></div>
+
+            <div x-show="modalUsar" x-transition class="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full border border-slate-100">
+                <form :action="'<?= base_url('placas/usar/') ?>' + placaUsar.id" method="POST">
+                    <div class="px-6 pt-6 pb-4">
+                        <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+                            <div class="flex items-center gap-2">
+                                <div class="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                                </div>
+                                <h3 class="text-lg font-bold text-slate-900">Dar Baixa / Usar Placa</h3>
+                            </div>
+                            <button type="button" @click="modalUsar = false" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+                        </div>
+
+                        <div class="space-y-4 text-sm">
+                            <div class="p-3 bg-slate-50 border border-slate-100 rounded-xl">
+                                <span class="text-xs text-slate-500 block">Placa Selecionada:</span>
+                                <strong class="text-slate-800 text-sm block" x-text="placaUsar.titulo"></strong>
+                                <span class="text-xs text-brand-600 font-semibold block mt-1">Estoque atual disponível: <span x-text="placaUsar.max"></span> unidade(s)</span>
+                            </div>
+
+                            <div>
+                                <label class="block font-semibold text-slate-700 mb-1">Quantidade Retirada / Usada *</label>
+                                <input type="number" name="quantidade_usada" x-model="placaUsar.quantidade" min="1" :max="placaUsar.max" required
+                                       class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-brand-500 focus:outline-hidden text-base font-bold text-slate-900">
+                                <p class="text-xs text-slate-400 mt-1.5">Essa quantidade será subtraída do estoque e transferida para a aba <strong>Usadas</strong>.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-50 px-6 py-4 flex items-center justify-end gap-3 rounded-b-2xl">
+                        <button type="button" @click="modalUsar = false" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 font-semibold text-xs hover:bg-slate-100">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs shadow-xs flex items-center gap-1.5">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            Confirmar Baixa
                         </button>
                     </div>
                 </form>

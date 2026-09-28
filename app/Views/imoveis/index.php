@@ -5,7 +5,37 @@
 <div x-data="{ 
     modalNovo: false, 
     modalEditar: false, 
-    imovelEdit: { id: '', titulo: '', endereco: '', descricao: '', status: '', video: '' } 
+    modalGaleria: false,
+    galeriaImovel: { titulo: '', imagens: [] },
+    search: '',
+    orderSavedToast: false,
+    imovelEdit: { id: '', titulo: '', endereco: '', descricao: '', status: '', video: '' },
+    init() {
+        this.$nextTick(() => {
+            const el = document.getElementById('sortable-cards');
+            if (el && window.Sortable) {
+                Sortable.create(el, {
+                    animation: 200,
+                    handle: '.drag-handle',
+                    ghostClass: 'opacity-40',
+                    onEnd: () => {
+                        const order = Array.from(el.querySelectorAll('[data-id]')).map(item => item.dataset.id);
+                        fetch('<?= base_url('imoveis/order') ?>', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            body: JSON.stringify({ order: order })
+                        }).then(res => res.json()).then(data => {
+                            this.orderSavedToast = true;
+                            setTimeout(() => { this.orderSavedToast = false; }, 3000);
+                        }).catch(err => console.error('Erro ao reordenar:', err));
+                    }
+                });
+            }
+        });
+    }
 }">
 
     <!-- Cabeçalho da Página -->
@@ -23,16 +53,16 @@
         </div>
     </div>
 
-    <!-- Navegação de Abas (Etapas da Esteira) -->
-    <div class="border-b border-slate-200 mb-8 overflow-x-auto">
-        <nav class="flex space-x-2 sm:space-x-4 min-w-max pb-px" aria-label="Abas da Esteira">
+    <!-- Navegação de Abas (Etapas da Esteira) e Pesquisa Rápida -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 mb-8 pb-3">
+        <nav class="flex space-x-2 sm:space-x-4 min-w-max overflow-x-auto pb-1" aria-label="Abas da Esteira">
             <?php foreach ($tabs as $key => $label): ?>
                 <?php 
                     $isActive = ($activeTab === $key);
                     $count = $counts[$key] ?? 0;
                 ?>
                 <a href="<?= base_url('imoveis?tab=' . urlencode($key)) ?>" 
-                   class="flex items-center gap-2 py-3 px-4 border-b-2 font-semibold text-sm transition-all whitespace-nowrap <?= $isActive ? 'border-brand-600 text-brand-700 bg-brand-50/50 rounded-t-lg' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300' ?>">
+                   class="flex items-center gap-2 py-2.5 px-4 border-b-2 font-semibold text-sm transition-all whitespace-nowrap <?= $isActive ? 'border-brand-600 text-brand-700 bg-brand-50/50 rounded-t-lg' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300' ?>">
                     <span><?= esc($label) ?></span>
                     <span class="px-2 py-0.5 text-xs rounded-full font-bold <?= $isActive ? 'bg-brand-600 text-white' : 'bg-slate-200 text-slate-600' ?>">
                         <?= $count ?>
@@ -40,6 +70,13 @@
                 </a>
             <?php endforeach; ?>
         </nav>
+
+        <!-- Campo de Pesquisa em Tempo Real -->
+        <div class="relative w-full sm:w-72">
+            <input type="text" x-model="search" placeholder="🔍 Filtrar imóveis nesta etapa..." 
+                   class="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-slate-200 bg-white focus:outline-hidden focus:ring-2 focus:ring-brand-500 shadow-xs">
+            <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+        </div>
     </div>
 
     <!-- Lista / Cards de Imóveis da Aba Ativa -->
@@ -55,33 +92,53 @@
             </button>
         </div>
     <?php else: ?>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div id="sortable-cards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <?php foreach ($imoveis as $imovel): ?>
                 <?php 
                     $coverImage = !empty($imovel['imagens_array']) ? $imovel['imagens_array'][0] : 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=600&auto=format&fit=crop&q=80';
+                    $qtdFotos = count($imovel['imagens_array'] ?? []);
                 ?>
-                <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition-all flex flex-col group">
+                <div data-id="<?= $imovel['id'] ?>"
+                     x-show="!search || '<?= strtolower(addslashes(esc($imovel['titulo'] . ' ' . ($imovel['endereco'] ?? '') . ' ' . ($imovel['descricao'] ?? '')))) ?>'.includes(search.toLowerCase())"
+                     class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition-all flex flex-col group">
                     
                     <!-- Imagem de Capa -->
-                    <div class="relative h-48 bg-slate-100 overflow-hidden">
+                    <div class="relative h-52 bg-slate-100 overflow-hidden">
                         <img src="<?= esc($coverImage) ?>" alt="<?= esc($imovel['titulo']) ?>" 
                              class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
-                        <div class="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent"></div>
+                        <div class="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-transparent to-slate-900/30"></div>
                         
-                        <!-- Badges na imagem -->
-                        <div class="absolute top-3 left-3">
-                            <span class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-white/90 backdrop-blur-md text-slate-800 shadow-xs capitalize">
+                        <!-- Topo da Imagem: Badge de Etapa + Botão Drag Handle -->
+                        <div class="absolute top-3 left-3 flex items-center gap-2">
+                            <span class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-white/95 backdrop-blur-md text-slate-800 shadow-xs capitalize">
                                 <?= esc($tabs[$imovel['status']] ?? $imovel['status']) ?>
                             </span>
+
+                            <?php if ($qtdFotos > 1): ?>
+                                <button type="button" 
+                                        @click="galeriaImovel = { titulo: '<?= addslashes(esc($imovel['titulo'])) ?>', imagens: <?= htmlspecialchars(json_encode($imovel['imagens_array']), ENT_QUOTES, 'UTF-8') ?> }; modalGaleria = true"
+                                        class="px-2 py-0.5 text-[11px] font-semibold rounded-md bg-slate-900/70 text-white backdrop-blur-xs hover:bg-slate-900 flex items-center gap-1 shadow-xs" title="Ver todas as fotos">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                    <span><?= $qtdFotos ?> fotos</span>
+                                </button>
+                            <?php endif; ?>
                         </div>
 
-                        <?php if (!empty($imovel['video'])): ?>
-                            <a href="<?= esc($imovel['video']) ?>" target="_blank" 
-                               class="absolute top-3 right-3 p-1.5 rounded-lg bg-rose-600/90 text-white hover:bg-rose-600 shadow-xs" title="Ver Vídeo">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                            </a>
-                        <?php endif; ?>
+                        <!-- Botão de Vídeo e Alça de Arraste (Drag Handle) -->
+                        <div class="absolute top-3 right-3 flex items-center gap-1.5">
+                            <?php if (!empty($imovel['video'])): ?>
+                                <a href="<?= esc($imovel['video']) ?>" target="_blank" 
+                                   class="p-1.5 rounded-lg bg-rose-600/90 text-white hover:bg-rose-600 shadow-xs transition-colors" title="Assistir Vídeo">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                </a>
+                            <?php endif; ?>
 
+                            <div class="drag-handle cursor-grab active:cursor-grabbing p-1.5 rounded-lg bg-slate-900/60 backdrop-blur-xs text-white hover:bg-slate-900 shadow-xs transition-colors" title="Segure e arraste para reordenar a prioridade">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path></svg>
+                            </div>
+                        </div>
+
+                        <!-- Rodapé da Imagem com Endereço -->
                         <div class="absolute bottom-3 left-3 right-3 text-white">
                             <p class="text-xs font-medium text-slate-200 flex items-center gap-1.5 truncate">
                                 <svg class="w-3.5 h-3.5 text-sky-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
@@ -146,6 +203,13 @@
         </div>
     <?php endif; ?>
 
+    <!-- Toast flutuante de Reordenação Salva -->
+    <div x-show="orderSavedToast" x-transition.opacity.duration.300ms 
+         class="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-2xl bg-slate-900 text-white shadow-2xl border border-slate-700 text-xs font-semibold">
+        <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+        <span>Ordem dos imóveis salva com sucesso!</span>
+    </div>
+
     <!-- MODAL: Novo Imóvel -->
     <div x-show="modalNovo" x-cloak class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
         <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:p-0">
@@ -182,7 +246,7 @@
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="block font-semibold text-slate-700 mb-1">Link do Vídeo</label>
+                                    <label class="block font-semibold text-slate-700 mb-1">Link do Vídeo / Tour</label>
                                     <input type="url" name="video" placeholder="https://youtube.com/..." 
                                            class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-brand-500 focus:outline-hidden">
                                 </div>
@@ -195,10 +259,10 @@
                             </div>
 
                             <div>
-                                <label class="block font-semibold text-slate-700 mb-1">Fotos do Imóvel</label>
+                                <label class="block font-semibold text-slate-700 mb-1">Fotos do Imóvel (Upload)</label>
                                 <input type="file" name="fotos[]" multiple accept="image/*" 
                                        class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100">
-                                <p class="text-xs text-slate-400 mt-1">Ou informe uma URL de imagem direta:</p>
+                                <p class="text-xs text-slate-400 mt-1">Ou informe uma URL direta de imagem:</p>
                                 <input type="url" name="imagem_url" placeholder="https://images.unsplash.com/..." 
                                        class="w-full mt-1 px-3 py-2 text-xs rounded-lg border border-slate-200">
                             </div>
@@ -254,7 +318,7 @@
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="block font-semibold text-slate-700 mb-1">Link do Vídeo</label>
+                                    <label class="block font-semibold text-slate-700 mb-1">Link do Vídeo / Tour</label>
                                     <input type="url" name="video" x-model="imovelEdit.video" 
                                            class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-brand-500 focus:outline-hidden">
                                 </div>
@@ -283,6 +347,38 @@
                         </button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Galeria de Fotos -->
+    <div x-show="modalGaleria" x-cloak class="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
+        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:p-0">
+            <div x-show="modalGaleria" x-transition.opacity class="fixed inset-0 bg-slate-950/80 backdrop-blur-md"></div>
+
+            <div x-show="modalGaleria" x-transition class="inline-block align-bottom bg-slate-900 rounded-3xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full border border-slate-800">
+                <div class="p-6">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+                        <h3 class="text-base font-bold text-white truncate" x-text="galeriaImovel.titulo"></h3>
+                        <button type="button" @click="modalGaleria = false" class="text-slate-400 hover:text-white text-xl font-bold">&times;</button>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto pr-1">
+                        <template x-for="(foto, index) in galeriaImovel.imagens" :key="index">
+                            <a :href="foto" target="_blank" class="rounded-xl overflow-hidden bg-slate-800 h-40 block group relative">
+                                <img :src="foto" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                                <div class="absolute inset-0 bg-slate-950/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold">
+                                    Abrir em tela cheia &nearr;
+                                </div>
+                            </a>
+                        </template>
+                    </div>
+                </div>
+                <div class="bg-slate-950/60 px-6 py-3 flex justify-end">
+                    <button type="button" @click="modalGaleria = false" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-200 text-xs font-semibold hover:bg-slate-700">
+                        Fechar
+                    </button>
+                </div>
             </div>
         </div>
     </div>

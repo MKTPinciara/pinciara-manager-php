@@ -73,6 +73,11 @@ class Placas extends Controller
             return redirect()->back()->withInput()->with('error', 'O título da placa é obrigatório.');
         }
 
+        // Cálculo de valor automático se não informado (R$ 35,00/m²)
+        if ($valor <= 0 && $largura > 0 && $altura > 0) {
+            $valor = round($largura * $altura * 35.00 * max(1, $quantidade), 2);
+        }
+
         $this->placaModel->insert([
             'titulo'     => $titulo,
             'largura'    => $largura,
@@ -96,8 +101,87 @@ class Placas extends Controller
             return redirect()->back()->with('error', 'Status inválido.');
         }
 
-        $this->placaModel->update($id, ['status' => $status]);
+        $placa = $this->placaModel->find($id);
+        if (!$placa) {
+            return redirect()->back()->with('error', 'Placa não encontrada.');
+        }
+
+        $data = ['status' => $status];
+
+        // Ao enviar para pagar, calcula valor e define data de envio se ainda não existirem
+        if ($status === 'pagar') {
+            if (empty($placa['data_envio'])) {
+                $data['data_envio'] = date('Y-m-d');
+            }
+            if ((float)$placa['valor'] <= 0 && (float)$placa['largura'] > 0 && (float)$placa['altura'] > 0) {
+                $data['valor'] = round((float)$placa['largura'] * (float)$placa['altura'] * 35.00 * (int)$placa['quantidade'], 2);
+            }
+        }
+
+        $this->placaModel->update($id, $data);
         return redirect()->to('/placas?tab=' . urlencode($status))->with('success', 'Status da placa atualizado!');
+    }
+
+    public function usar($id)
+    {
+        $placa = $this->placaModel->find($id);
+        if (!$placa) {
+            return redirect()->back()->with('error', 'Placa não encontrada.');
+        }
+
+        $qtdUsada = (int)$this->request->getPost('quantidade_usada');
+        if ($qtdUsada <= 0) {
+            return redirect()->back()->with('error', 'Informe uma quantidade válida para uso.');
+        }
+
+        if ($qtdUsada > (int)$placa['quantidade']) {
+            return redirect()->back()->with('error', 'Quantidade solicitada maior do que o estoque disponível (' . $placa['quantidade'] . ' un).');
+        }
+
+        $restante = (int)$placa['quantidade'] - $qtdUsada;
+
+        if ($restante <= 0) {
+            // Usou todo o lote disponível: move a placa inteira para "usadas"
+            $this->placaModel->update($id, ['status' => 'usadas']);
+        } else {
+            // Atualiza o estoque restante do lote disponível
+            $this->placaModel->update($id, ['quantidade' => $restante]);
+
+            // Verifica se já existe lote similar em 'usadas' para somar quantidade
+            $placaUsadaExistente = $this->placaModel
+                ->where('titulo', $placa['titulo'])
+                ->where('largura', $placa['largura'])
+                ->where('altura', $placa['altura'])
+                ->where('material', $placa['material'])
+                ->where('tipo', $placa['tipo'])
+                ->where('status', 'usadas')
+                ->first();
+
+            if ($placaUsadaExistente) {
+                $this->placaModel->update($placaUsadaExistente['id'], [
+                    'quantidade' => (int)$placaUsadaExistente['quantidade'] + $qtdUsada
+                ]);
+            } else {
+                $valorProporcional = (float)$placa['valor'] > 0
+                    ? round(((float)$placa['valor'] / max(1, (int)$placa['quantidade'])) * $qtdUsada, 2)
+                    : round((float)$placa['largura'] * (float)$placa['altura'] * 35.00 * $qtdUsada, 2);
+
+                $this->placaModel->insert([
+                    'titulo'     => $placa['titulo'],
+                    'largura'    => $placa['largura'],
+                    'altura'     => $placa['altura'],
+                    'material'   => $placa['material'],
+                    'tipo'       => $placa['tipo'],
+                    'quantidade' => $qtdUsada,
+                    'observacao' => $placa['observacao'],
+                    'status'     => 'usadas',
+                    'data_envio' => $placa['data_envio'] ?? date('Y-m-d'),
+                    'valor'      => $valorProporcional,
+                ]);
+            }
+        }
+
+        return redirect()->to('/placas?tab=usadas')->with('success', "Baixa realizada com sucesso! {$qtdUsada} unidade(s) movida(s) para 'Usadas'.");
     }
 
     public function update($id)

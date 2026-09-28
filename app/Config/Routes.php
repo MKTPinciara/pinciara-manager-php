@@ -22,12 +22,13 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
     $routes->post('imoveis/update/(:num)', 'Imoveis::update/$1');
     $routes->post('imoveis/status/(:num)', 'Imoveis::updateStatus/$1');
     $routes->post('imoveis/order', 'Imoveis::updateOrder');
-    $routes->match(['get', 'post'], 'imoveis/delete/(:num)', 'Imoveis::delete/$1');
+    $routes->match(['GET', 'POST'], 'imoveis/delete/(:num)', 'Imoveis::delete/$1');
 
     // Gestão de Placas
     $routes->get('placas', 'Placas::index');
     $routes->post('placas', 'Placas::store');
     $routes->post('placas/update/(:num)', 'Placas::update/$1');
     $routes->post('placas/status/(:num)', 'Placas::updateStatus/$1');
-    $routes->match(['get', 'post'], 'placas/delete/(:num)', 'Placas::delete/$1');
+    $routes->post('placas/usar/(:num)', 'Placas::usar/$1');
+    $routes->match(['GET', 'POST'], 'placas/delete/(:num)', 'Placas::delete/$1');
 });

@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= esc($title ?? 'Pinciara Manager') ?></title>
-    <!-- Tailwind CSS CDN -->
+    <!-- Compiled Tailwind CSS & CDN fallback -->
+    <link rel="stylesheet" href="<?= base_url('css/app.css') ?>">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -15,6 +16,8 @@
                             50: '#f0f7ff',
                             100: '#e0effe',
                             200: '#bae0fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
                             500: '#0284c7',
                             600: '#0369a1',
                             700: '#075985',
@@ -26,14 +29,16 @@
             }
         }
     </script>
-    <!-- Alpine.js para interatividade leve -->
+    <!-- Alpine.js & SortableJS -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <!-- Google Fonts: Inter -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+    <!-- Google Fonts: Inter / Plus Jakarta Sans -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        [x-cloak] { display: none !important; }
     </style>
 </head>
 <body class="h-full flex flex-col antialiased text-slate-800" x-data="{ mobileMenuOpen: false }">
